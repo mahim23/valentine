@@ -1,0 +1,633 @@
+---
+import '../styles/main.css';
+---
+
+<html lang="en" data-theme="valentine">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>💕 Be My Valentine? 💕</title>
+		<!-- Cute Google Fonts -->
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Playpen Sans:wght@400;600;700&family=Fredoka:wght@300;400;500;600&display=swap" rel="stylesheet">
+		
+		<style>
+			/* Apply cute fonts globally */
+			body, html {
+				font-family: 'Fredoka', 'Comic Sans MS', cursive !important;
+			}
+			
+			/* Headings use the handwritten font */
+			h1, h2, h3, h4, h5, h6 {
+				font-family: 'Playpen Sans', 'Comic Sans MS', cursive !important;
+				font-weight: 600;
+			}
+			
+			/* Buttons get the cute rounded font */
+			button {
+				font-family: 'Fredoka', 'Comic Sans MS', cursive !important;
+				font-weight: 500;
+			}
+			
+			/* Special styling for cute text */
+			.cute-text {
+				font-family: 'Playpen Sans', 'Comic Sans MS', cursive !important;
+				font-weight: 600;
+			}
+		</style>
+	</head>
+	<body class="min-h-screen bg-gradient-to-br from-pink-100 via-pink-50 to-rose-100 flex items-center justify-center p-4 overflow-hidden">
+		<!-- Fixed container for button movement -->
+		<div id="movementContainer" class="fixed inset-0 pointer-events-none z-50"></div>
+		
+		<div class="valentine-box bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-16 max-w-4xl w-full min-h-[600px] text-center border border-pink-200/50 relative z-20 flex flex-col justify-center">
+			<!-- Cute animated sticker -->
+			<div class="sticker mb-6">
+				<img 
+					src="/sweet-love-sending-hearts-bear-dance-zhcyfpzh2od6185x.gif" 
+					alt="Sweet love animated sticker"
+					class="mx-auto w-60 h-60 object-contain"
+				/>
+			</div>
+			
+			<!-- Question text -->
+			<h1 class="text-4xl font-bold text-gray-800 mb-12">
+				Love, will you be my valentine?
+			</h1>
+			
+			<!-- Buttons container -->
+			<div class="buttons-container relative h-20 flex items-center justify-center gap-16">
+                <div class="px-8 py-3">
+                    <button 
+                        id="yesBtn" 
+                        class="btn btn-primary px-12 py-8 text-xl font-semibold rounded-full transition-all duration-300 ease-out hover:scale-105 shadow-lg overflow-hidden whitespace-nowrap"
+                    >
+                        Yes! 💝
+                    </button>
+                </div>
+				<div class="px-8 py-3">
+                    <button 
+                        id="noBtn" 
+                        class="btn btn-secondary px-7 py-3 text-lg font-semibold rounded-full transition-all duration-200 ease-out hover:scale-105 shadow-lg overflow-hidden whitespace-nowrap"
+                    >
+                        No 💔
+                    </button>
+                </div>
+			</div>
+		</div>
+
+		<script>
+			import { gsap } from 'gsap';
+			import * as party from 'party-js';
+
+			// Variables
+			let yesBtn = document.getElementById('yesBtn');
+			let noBtn = document.getElementById('noBtn');
+			let container = document.querySelector('.buttons-container');
+			let valentineBox = document.querySelector('.valentine-box');
+			let sticker = document.querySelector('.sticker');
+			let movementContainer = document.getElementById('movementContainer');
+			let noClickCount = 0;
+			let yesScale = 1;
+
+			// Initial animation for the box
+			gsap.fromTo(valentineBox, 
+				{ scale: 0, rotation: -10, opacity: 0 },
+				{ scale: 1, rotation: 0, opacity: 1, duration: 0.8, ease: "back.out(1.7)", 
+				  onComplete: () => {
+					// Move No button to movement container immediately after box appears
+					setupNoButtonForMovement();
+				  }
+				}
+			);
+
+
+			// Move No button to movement container immediately
+			function setupNoButtonForMovement() {
+				if (noBtn.parentElement !== movementContainer) {
+					// Clone button and add to movement container
+					const btnClone = noBtn.cloneNode(true);
+					btnClone.style.position = 'absolute';
+					btnClone.style.pointerEvents = 'all';
+					btnClone.style.zIndex = '30';
+					
+					// Get current position
+					const rect = noBtn.getBoundingClientRect();
+					btnClone.style.left = rect.left + 'px';
+					btnClone.style.top = rect.top + 'px';
+					
+					// Add to movement container
+					movementContainer.appendChild(btnClone);
+					
+					// Hide original button
+					noBtn.style.visibility = 'hidden';
+					
+					// Update reference
+					noBtn = btnClone;
+					
+					// Reattach event listeners to new button
+					noBtn.addEventListener('mouseenter', moveNoButton);
+					noBtn.addEventListener('click', (e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						return false;
+					});
+					noBtn.addEventListener('mousedown', (e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						return false;
+					});
+				}
+			}
+
+			// New optimized algorithm for positioning No button
+			function getRandomPosition(mouseX: number, mouseY: number) {
+				// CONSTRAINT CONSTANTS (easily configurable)
+				const SCREEN_MARGIN = 20;           // Pixels from screen edges
+				const MIN_CURSOR_DISTANCE = 150;    // Minimum distance from cursor
+				const YES_BUTTON_EXCLUSION = 100;   // Distance to avoid Yes button
+				const MAX_JUMP_DISTANCE = 350;      // Maximum smooth movement distance
+				const MAX_ATTEMPTS = 50;            // Attempts per tier
+				
+				// Get dimensions and positions
+				const btnRect = noBtn.getBoundingClientRect();
+				const yesRect = yesBtn.getBoundingClientRect();
+				const currentX = btnRect.left;
+				const currentY = btnRect.top;
+				const buttonWidth = btnRect.width;
+				const buttonHeight = btnRect.height;
+				const yesButtonCenterX = yesRect.left + yesRect.width / 2;
+				const yesButtonCenterY = yesRect.top + yesRect.height / 2;
+				
+				// Calculate screen bounds
+				const minX = SCREEN_MARGIN;
+				const maxX = window.innerWidth - buttonWidth - SCREEN_MARGIN;
+				const minY = SCREEN_MARGIN;
+				const maxY = window.innerHeight - buttonHeight - SCREEN_MARGIN;
+				
+				// Helper function to check if position meets ALL constraints
+				function isValidPosition(x: number, y: number) {
+					// Check screen bounds first
+					if (x < minX || x > maxX || y < minY || y > maxY) {
+						return false;
+					}
+					
+					const buttonCenterX = x + buttonWidth / 2;
+					const buttonCenterY = y + buttonHeight / 2;
+					
+					// Check cursor distance
+					const cursorDistance = Math.sqrt(
+						Math.pow(buttonCenterX - mouseX, 2) + 
+						Math.pow(buttonCenterY - mouseY, 2)
+					);
+					
+					// Check Yes button distance
+					const yesDistance = Math.sqrt(
+						Math.pow(buttonCenterX - yesButtonCenterX, 2) + 
+						Math.pow(buttonCenterY - yesButtonCenterY, 2)
+					);
+					
+					return cursorDistance >= MIN_CURSOR_DISTANCE && yesDistance >= YES_BUTTON_EXCLUSION;
+				}
+				
+				// TIER 1: Try smooth movement within jump distance (optimized with screen bounds)
+				const smoothMinX = Math.max(minX, currentX - MAX_JUMP_DISTANCE);
+				const smoothMaxX = Math.min(maxX, currentX + MAX_JUMP_DISTANCE);
+				const smoothMinY = Math.max(minY, currentY - MAX_JUMP_DISTANCE);
+				const smoothMaxY = Math.min(maxY, currentY + MAX_JUMP_DISTANCE);
+				
+				// Only proceed if we have a valid smooth movement area
+				if (smoothMinX < smoothMaxX && smoothMinY < smoothMaxY) {
+					for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+						const x = smoothMinX + Math.random() * (smoothMaxX - smoothMinX);
+						const y = smoothMinY + Math.random() * (smoothMaxY - smoothMinY);
+						
+						if (isValidPosition(x, y)) {
+							console.log("Tier 1 - Smooth movement used");
+							return { x, y };
+						}
+					}
+				}
+				
+				// TIER 2: Try anywhere on screen (ignore jump distance)
+				for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+					const x = minX + Math.random() * (maxX - minX);
+					const y = minY + Math.random() * (maxY - minY);
+					
+					if (isValidPosition(x, y)) {
+						console.log("Tier 2 - Whole screen used");
+						return { x, y };
+					}
+				}
+				
+				// TIER 3: Fallback to farthest corner
+				console.log("Tier 3 - Corner fallback used");
+				const corners = [
+					{ x: minX, y: minY },                    // Top-left
+					{ x: maxX, y: minY },                    // Top-right  
+					{ x: minX, y: maxY },                    // Bottom-left
+					{ x: maxX, y: maxY }                     // Bottom-right
+				];
+				
+				// Filter corners that meet Yes button constraint
+				const validCorners = corners.filter(corner => {
+					const cornerCenterX = corner.x + buttonWidth / 2;
+					const cornerCenterY = corner.y + buttonHeight / 2;
+					const yesDistance = Math.sqrt(
+						Math.pow(cornerCenterX - yesButtonCenterX, 2) + 
+						Math.pow(cornerCenterY - yesButtonCenterY, 2)
+					);
+					return yesDistance >= YES_BUTTON_EXCLUSION;
+				});
+				
+				// Find corner furthest from cursor
+				let farthestCorner = validCorners.length > 0 ? validCorners[0] : corners[0];
+				let maxDistance = 0;
+				
+				const cornersToCheck = validCorners.length > 0 ? validCorners : corners;
+				for (const corner of cornersToCheck) {
+					const cornerCenterX = corner.x + buttonWidth / 2;
+					const cornerCenterY = corner.y + buttonHeight / 2;
+					const distance = Math.sqrt(
+						Math.pow(cornerCenterX - mouseX, 2) + 
+						Math.pow(cornerCenterY - mouseY, 2)
+					);
+					
+					if (distance > maxDistance) {
+						maxDistance = distance;
+						farthestCorner = corner;
+					}
+				}
+				
+				return farthestCorner;
+			}
+
+			// Function to move No button away from cursor
+			function moveNoButton(event: { clientX: any; clientY: any; }) {
+                console.log("moving no button");
+				
+				// Set up button in movement container on first call
+				setupNoButtonForMovement();
+				
+				noClickCount++;
+				yesScale += 0.1;
+				
+				// Make Yes button bigger
+				gsap.to(yesBtn, {
+					scale: yesScale,
+					duration: 0.3,
+					ease: "back.out(1.7)"
+				});
+				
+				// Get mouse position for avoiding cursor
+				const mouseX = event ? event.clientX : window.innerWidth / 2;
+				const mouseY = event ? event.clientY : window.innerHeight / 2;
+				
+				// Move No button to random position
+				const newPos = getRandomPosition(mouseX, mouseY);
+				
+				gsap.to(noBtn, {
+					left: newPos.x + 'px',
+					top: newPos.y + 'px',
+					duration: 0.3,
+					ease: "power2.out",
+					rotation: Math.random() * 20 - 10
+				});
+
+				// Add some particle effects
+				party.confetti(noBtn, {
+					count: 10,
+					spread: 30,
+					size: 0.5
+				});
+
+				// Change No button text after multiple hovers
+				if (noClickCount === 3) {
+					noBtn.textContent = "Please? 🥺";
+				} else if (noClickCount === 6) {
+					noBtn.textContent = "Why not? 😢";
+				} else if (noClickCount === 9) {
+					noBtn.textContent = "Come on... 😭";
+				} else if (noClickCount > 12) {
+					noBtn.textContent = "Fine… I'll just be sad forever… 😭💔";
+				}
+			}
+
+			// No button hover event
+			noBtn.addEventListener('mouseenter', moveNoButton);
+			
+			// Prevent clicks on No button but allow other events
+			noBtn.addEventListener('click', (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				return false;
+			});
+
+			// Also prevent mousedown to make it completely unclickable
+			noBtn.addEventListener('mousedown', (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				return false;
+			});
+
+			// Yes button click event
+			yesBtn.addEventListener('click', () => {
+				// Remove No button completely (frees up processing power)
+				if (noBtn && noBtn.parentNode) {
+					noBtn.parentNode.removeChild(noBtn);
+					noBtn = null; // Clear reference
+				}
+
+				// Celebration animation
+				gsap.to(valentineBox, {
+					scale: 1.1,
+					rotation: 5,
+					duration: 0.3,
+					yoyo: true,
+					repeat: 1,
+					ease: "power2.inOut"
+				});
+
+				// Big confetti explosion
+				party.confetti(document.body, {
+					count: 100,
+					spread: 60,
+					size: 1.2
+				});
+
+				// Change content to "excellent choice" celebration
+				setTimeout(() => {
+					valentineBox.innerHTML = `
+						<div class="text-center">
+							<h1 class="text-4xl font-bold text-gray-800 mb-6">Excellent Choice! 🎉</h1>
+							<div class="mb-6">
+								<img 
+									src="https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif" 
+									alt="Excellent choice celebration gif"
+									class="mx-auto rounded-2xl shadow-lg max-w-md w-80 h-60 object-cover"
+									onerror="this.src='https://media.giphy.com/media/3o6fJ5LANL0x31R1Ic/giphy.gif'"
+								/>
+							</div>
+							<p class="text-xl text-gray-700 font-medium">You've made the perfect decision! ✨</p>
+							<div class="text-4xl mt-4">🎊💃🎊</div>
+						</div>
+					`;
+					
+					// Wait 2 seconds then start gift selection flow
+					setTimeout(() => {
+						startGiftSelection();
+					}, 3000);
+				}, 600);
+			});
+
+			// Add hover effect for Yes button
+			yesBtn.addEventListener('mouseenter', () => {
+				gsap.to(yesBtn, {
+					scale: yesScale * 1.1,
+					duration: 0.2,
+					ease: "power2.out"
+				});
+			});
+
+			yesBtn.addEventListener('mouseleave', () => {
+				gsap.to(yesBtn, {
+					scale: yesScale,
+					duration: 0.2,
+					ease: "power2.out"
+				});
+			});
+
+			// Gift Selection Flow
+			let currentGift = 1;
+
+			// Random negative responses for wrong gift choices
+			function getRandomNegativeResponse() {
+				const responses = [
+					"Really? 😒",
+					"Seriously? 🤨", 
+					"Are you kidding? 😑",
+					"Come on... 🙄",
+					"Think again! 😅",
+					"Nope! Try harder 😏",
+					"That's not it! 🤷‍♀️",
+					"Oh no you didn't! 😤",
+					"Wrong choice babe 😘",
+					"Nice try! 😜",
+					"Not quite! 😊",
+					"Hmm... no 🤔"
+				];
+				
+				return responses[Math.floor(Math.random() * responses.length)];
+			}
+
+			function startGiftSelection() {
+				showGiftQuestion(1);
+			}
+
+			function showGiftQuestion(giftNumber: number) {
+				const giftQuestions = [
+					{
+						question: "What should I get my princess as her first gift? 💗",
+						emoji: "🎁",
+						options: [
+							{ text: "A cute dance performance by me 🕺", correct: true },
+							{ text: "Live reenactment of a printer error message 🖨️", correct: false },
+							{ text: "Dramatic reading of terms & conditions 📜", correct: false }
+						]
+					},
+					{
+						question: "Round two: what would you like your next present to be? 🎀",
+						emoji: "💝",
+						options: [
+							{ text: "A TED Talk on different types of dust found in the house 🧹🙂", correct: false },
+                            { text: "Executive Deck - Why we're the cutest (with proof) 📊💗", correct: true },
+							{ text: "A guided tour of my email inbox 📧🫠", correct: false }
+						]
+					},
+					{
+						question: "Third gift time: what do you want, beautiful? 💞",
+						emoji: "✨",
+						options: [
+							{ text: "A whole day of me saying yes ✅", correct: true },
+							{ text: "A day of chores in silence 🧹", correct: false },
+							{ text: "A day of waiting in lines 🎟️", correct: false }
+						]
+					}
+				];
+
+				const gift = giftQuestions[giftNumber - 1];
+				
+				// Animate transition
+				gsap.to(valentineBox, {
+					opacity: 0,
+					scale: 0.8,
+					duration: 0.3,
+					ease: "power2.in",
+					onComplete: () => {
+						valentineBox.innerHTML = `
+							<div class="text-6xl mb-16">${gift.emoji}</div>
+							<h1 class="text-2xl font-bold text-gray-800 mb-16">${gift.question}</h1>
+							<div class="gift-options space-y-4">
+								${gift.options.map((option, index) => `
+									<button 
+										class="gift-option btn btn-outline w-full py-4 text-lg font-medium rounded-full transition-all duration-300 hover:scale-105"
+										data-correct="${option.correct}"
+										data-gift="${giftNumber}"
+									>
+										${option.text}
+									</button>
+								`).join('')}
+							</div>
+						`;
+
+						// Animate in
+						gsap.to(valentineBox, {
+							opacity: 1,
+							scale: 1,
+							duration: 0.5,
+							ease: "back.out(1.7)",
+							onComplete: () => {
+								setupGiftOptionListeners(giftNumber);
+							}
+						});
+					}
+				});
+			}
+
+			function setupGiftOptionListeners(giftNumber: number) {
+				const options = document.querySelectorAll('.gift-option');
+				
+				options.forEach(option => {
+					option.addEventListener('click', () => {
+						const isCorrect = option.getAttribute('data-correct') === 'true';
+						
+						if (isCorrect) {
+							// Correct choice - celebrate and move to next
+							gsap.to(option, {
+								scale: 1.1,
+								backgroundColor: '#4ade80',
+								duration: 0.3,
+								ease: "back.out(1.7)"
+							});
+
+							party.confetti(option, {
+								count: 50,
+								spread: 40,
+								size: 0.8
+							});
+
+							setTimeout(() => {
+								if (giftNumber < 3) {
+									showGiftQuestion(giftNumber + 1);
+								} else {
+									showFinalGif();
+								}
+							}, 1000);
+						} else {
+							// Wrong choice - negative reaction
+							gsap.to(option, {
+								x: -10,
+								duration: 0.1,
+								yoyo: true,
+								repeat: 5,
+								ease: "power2.inOut",
+								onComplete: () => {
+									gsap.set(option, { x: 0 });
+								}
+							});
+
+							// Change color temporarily
+							gsap.to(option, {
+								backgroundColor: '#ef4444',
+								color: '#ffffff',
+								duration: 0.2,
+								yoyo: true,
+								repeat: 1,
+								ease: "power2.inOut"
+							});
+
+							// Add random disapproving response
+							const originalText = option.textContent;
+							option.textContent = getRandomNegativeResponse();
+							
+							setTimeout(() => {
+								option.textContent = originalText;
+							}, 1000);
+						}
+					});
+				});
+			}
+
+			function showFinalGif() {
+				gsap.to(valentineBox, {
+					opacity: 0,
+					scale: 0.8,
+					duration: 0.3,
+					ease: "power2.in",
+					onComplete: () => {
+						// TOOLTIP CONFIGURATION - Easy to change
+						const TOOLTIP_START_DATE = new Date('2026-02-11T14:00:00Z');
+						const TOOLTIP_END_DATE = new Date('2026-02-11T20:00:00Z');
+						
+						// Check if current time is within the specified range
+						const now = new Date();
+						const showTooltip = now >= TOOLTIP_START_DATE && now <= TOOLTIP_END_DATE;
+						
+						valentineBox.innerHTML = `
+							<div class="text-center">
+								<h1 class="text-3xl font-bold text-gray-800 mb-6">
+									I love you so much, my 
+									<span class="${showTooltip ? 'tooltip tooltip-top tooltip-primary' : ''}" ${showTooltip ? 'data-tip="It means Golden Fairy (for Bukayo)"' : ''}>
+										Sonpari
+									</span>! 👸🏻
+								</h1>
+								<div class="mb-6">
+									<img 
+										src="/cute_kiss.gif" 
+										alt="Cute kiss gif"
+										class="mx-auto rounded-2xl shadow-lg max-w-sm"
+									/>
+								</div>
+								<p class="text-lg text-gray-600 mb-4">You mean the world to me! I promise to give you all these beautiful moments and so much more. ✨</p>
+								<div class="text-6xl animate-pulse">💕✨💖✨💕</div>
+							</div>
+						`;
+
+						// Animate in
+						gsap.to(valentineBox, {
+							opacity: 1,
+							scale: 1,
+							duration: 0.5,
+							ease: "back.out(1.7)",
+							onComplete: () => {
+								// Show tooltip after 1 second if condition is met
+								if (showTooltip) {
+									setTimeout(() => {
+										const tooltipElement = document.querySelector('.tooltip');
+										if (tooltipElement) {
+											// Add the tooltip-open class after 1 second delay
+											tooltipElement.classList.add('tooltip-open');
+										}
+									}, 3000);
+								}
+							}
+						});
+
+						// Final confetti celebration
+						setTimeout(() => {
+							party.confetti(document.body, {
+								count: 200,
+								spread: 80,
+								size: 1.5
+							});
+						}, 500);
+					}
+				});
+			}
+		</script>
+	</body>
+</html>

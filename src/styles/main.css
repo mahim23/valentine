@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark, valentine;
+}
+
+#yesBtn {
+    background-color: var(--color-primary);
+}
+
+#noBtn {
+    background-color: var(--color-secondary);
+}
